@@ -13,6 +13,45 @@
         app:show_buffering="never"
         app:use_controller="false" />
 
+    <!-- Radio: big logo, station and current song instead of a picture -->
+    <LinearLayout
+        android:id="@+id/radio_panel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/background"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/radio_logo"
+            android:layout_width="320dp"
+            android:layout_height="200dp"
+            android:contentDescription="@null"
+            android:scaleType="fitCenter" />
+
+        <TextView
+            android:id="@+id/radio_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:textColor="@color/text_primary"
+            android:textSize="34sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/radio_song"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:paddingStart="48dp"
+            android:paddingEnd="48dp"
+            android:gravity="center"
+            android:maxLines="2"
+            android:textColor="@color/accent"
+            android:textSize="22sp" />
+    </LinearLayout>
+
     <TextView
         android:id="@+id/status"
         android:layout_width="wrap_content"

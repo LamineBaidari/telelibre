@@ -49,6 +49,7 @@ object Sources {
     const val GROUP_SENEGAL = "Sénégal"
     const val GROUP_AFRICA = "Afrique francophone"
     const val GROUP_WORLD_NEWS = "Infos internationales"
+    const val GROUP_RADIO = "Radio"
 
     private val CATEGORY_GROUPS = mapOf(
         "news" to "Actualités",
@@ -75,7 +76,7 @@ object Sources {
 
     /** Row order in the browse screen (favourites are always first). */
     val GROUP_ORDER = listOf(
-        GROUP_SENEGAL, GROUP_AFRICA, "Actualités", GROUP_WORLD_NEWS, "Généralistes", "Films",
+        GROUP_SENEGAL, GROUP_AFRICA, "Actualités", GROUP_WORLD_NEWS, GROUP_RADIO, "Généralistes", "Films",
         "Séries", "Jeunesse", "Musique", "Sport", "Découverte", GROUP_ENTERTAINMENT, "Religion",
         GROUP_OTHER,
     )

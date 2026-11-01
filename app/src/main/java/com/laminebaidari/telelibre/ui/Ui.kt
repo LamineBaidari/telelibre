@@ -14,14 +14,15 @@ import java.util.Date
 val Context.app: App get() = applicationContext as App
 
 fun ImageView.loadLogo(channel: Channel, widthPx: Int, heightPx: Int) {
+    val placeholder = if (channel.radio) R.drawable.ic_radio else R.drawable.ic_tv
     if (channel.logo == null) {
-        setImageResource(R.drawable.ic_tv)
+        setImageResource(placeholder)
         return
     }
     load(channel.logo) {
         size(widthPx, heightPx)
-        placeholder(R.drawable.ic_tv)
-        error(R.drawable.ic_tv)
+        placeholder(placeholder)
+        error(placeholder)
     }
 }
 

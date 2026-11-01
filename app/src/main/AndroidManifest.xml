@@ -3,6 +3,16 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Self-update from GitHub releases; the user still confirms each install. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Favourites row on the TV home screen. -->
+    <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" />
+    <uses-permission android:name="com.android.providers.tv.permission.WRITE_EPG_DATA" />
+
+    <!-- Opened for the "Sénégal sur YouTube" row. -->
+    <queries>
+        <package android:name="com.google.android.youtube.tv" />
+    </queries>
 
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
@@ -24,13 +34,35 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Home-screen row title -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="telelibre" android:host="home" />
+            </intent-filter>
         </activity>
 
         <activity
             android:name=".ui.player.PlayerActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize"
-            android:exported="false"
-            android:theme="@style/Theme.TeleLibre.Player" />
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.TeleLibre.Player">
+            <!-- Home-screen favourite tiles: telelibre://play?key=… -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="telelibre" android:host="play" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.guide.GuideActivity"
+            android:exported="false" />
+
+        <receiver
+            android:name=".update.InstallResultReceiver"
+            android:exported="false" />
 
         <activity
             android:name=".ui.search.SearchActivity"

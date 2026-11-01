@@ -10,10 +10,12 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.OptIn
 import androidx.fragment.app.FragmentActivity
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -21,6 +23,7 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -29,14 +32,16 @@ import com.laminebaidari.telelibre.R
 import com.laminebaidari.telelibre.data.StreamChecker
 import com.laminebaidari.telelibre.model.Channel
 import com.laminebaidari.telelibre.ui.app
+import com.laminebaidari.telelibre.ui.guide.GuideActivity
 import com.laminebaidari.telelibre.ui.displayName
 import com.laminebaidari.telelibre.ui.label
 import com.laminebaidari.telelibre.ui.loadLogo
 import com.laminebaidari.telelibre.ui.toggleFavourite
 
 /**
- * Full-screen live TV. Up/Down or CH+/CH- zap through the list the channel was opened from,
- * OK shows the quick list, Back closes overlays then returns to the rows.
+ * Full-screen live TV or radio. Up/Down or CH+/CH- zap through the list the channel was opened from,
+ * OK shows the quick list, ☰ switches to the favourites, the bookmark key toggles favourite,
+ * Back closes overlays then returns to the rows.
  */
 @OptIn(UnstableApi::class)
 class PlayerActivity : FragmentActivity() {
@@ -46,6 +51,8 @@ class PlayerActivity : FragmentActivity() {
     private lateinit var quickPanel: View
     private lateinit var quickList: RecyclerView
     private lateinit var quickAdapter: QuickListAdapter
+    private lateinit var radioPanel: View
+    private lateinit var radioSong: TextView
 
     private var player: ExoPlayer? = null
     private var channels: List<Channel> = emptyList()
@@ -67,11 +74,10 @@ class PlayerActivity : FragmentActivity() {
         banner = findViewById(R.id.banner)
         quickPanel = findViewById(R.id.quick_panel)
         quickList = findViewById(R.id.quick_list)
+        radioPanel = findViewById(R.id.radio_panel)
+        radioSong = findViewById(R.id.radio_song)
 
-        val keys = intent.getStringArrayListExtra(EXTRA_LIST).orEmpty()
-        channels = keys.mapNotNull(app.channels::find)
-        index = channels.indexOfFirst { it.key == intent.getStringExtra(EXTRA_KEY) }.coerceAtLeast(0)
-        if (channels.isEmpty()) {
+        if (!load(intent)) {
             finish()
             return
         }
@@ -98,6 +104,36 @@ class PlayerActivity : FragmentActivity() {
                 }
             }
         })
+    }
+
+    /** A home-screen tile can open another channel while this screen is already up. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (load(intent) && player != null) tune(index)
+    }
+
+    /**
+     * Reads the channel and the list to zap through: from [start], or from a home-screen tile
+     * (telelibre://play?key=…), which zaps through the favourites.
+     */
+    private fun load(intent: Intent): Boolean {
+        val repo = app.channels
+        val key: String?
+        val keys: List<String>
+        val data = intent.data
+        if (data?.scheme == "telelibre" && data.host == "play") {
+            key = data.getQueryParameter("key")
+            val channel = key?.let(repo::find) ?: return false
+            keys = repo.favouriteChannels().map { it.key }.takeIf { key in it } ?: repo.inGroup(channel.group).map { it.key }
+        } else {
+            key = intent.getStringExtra(EXTRA_KEY)
+            keys = intent.getStringArrayListExtra(EXTRA_LIST).orEmpty()
+        }
+        val found = keys.mapNotNull(repo::find)
+        if (found.isEmpty()) return false
+        channels = found
+        index = channels.indexOfFirst { it.key == key }.coerceAtLeast(0)
+        return true
     }
 
     override fun onStart() {
@@ -146,8 +182,12 @@ class PlayerActivity : FragmentActivity() {
         val http = OkHttpDataSource.Factory(app.http)
             .setUserAgent(channel.userAgent ?: StreamChecker.DEFAULT_USER_AGENT)
             .apply { channel.referrer?.let { setDefaultRequestProperties(mapOf("Referer" to it)) } }
+        showRadioPanel(channel)
+        val item = MediaItem.fromUri(channel.url)
         // Many playlist URLs (e.g. jmp2.uk redirects) don't end in .m3u8, so say it's HLS explicitly.
-        val source = HlsMediaSource.Factory(http).createMediaSource(MediaItem.fromUri(channel.url))
+        // Radio is a plain MP3/AAC stream; Media3 asks it for song titles (ICY metadata) on its own.
+        val source = if (channel.radio) ProgressiveMediaSource.Factory(http).createMediaSource(item)
+        else HlsMediaSource.Factory(http).createMediaSource(item)
         player.setMediaSource(source)
         player.prepare()
         watchForStall()
@@ -162,6 +202,12 @@ class PlayerActivity : FragmentActivity() {
                 }
                 Player.STATE_BUFFERING -> watchForStall()
             }
+        }
+
+        override fun onMediaMetadataChanged(metadata: MediaMetadata) {
+            // Some stations send " - " when they have no song title: show nothing then.
+            val title = metadata.title?.toString().orEmpty()
+            if (channels.getOrNull(index)?.radio == true) radioSong.text = if (title.any { it.isLetter() }) title else ""
         }
 
         override fun onPlayerError(error: PlaybackException) {
@@ -208,7 +254,13 @@ class PlayerActivity : FragmentActivity() {
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP -> tune(index + 1)
             KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN -> tune(index - 1)
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> showQuickList()
-            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_INFO, KeyEvent.KEYCODE_MENU -> showBanner()
+            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_INFO -> showBanner()
+            KeyEvent.KEYCODE_MENU -> showFavourites()
+            KeyEvent.KEYCODE_BOOKMARK -> {
+                toggleFavourite(this, channels[index])
+                showBanner()
+            }
+            KeyEvent.KEYCODE_GUIDE -> startActivity(Intent(this, GuideActivity::class.java))
             else -> return super.onKeyDown(keyCode, event)
         }
         return true
@@ -232,6 +284,28 @@ class PlayerActivity : FragmentActivity() {
         banner.visibility = View.VISIBLE
         handler.removeCallbacks(hideBanner)
         handler.postDelayed(hideBanner, BANNER_MS)
+    }
+
+    /** ☰: zap through the favourites from now on, starting from the quick list. */
+    private fun showFavourites() {
+        val favourites = app.channels.favouriteChannels()
+        if (favourites.isEmpty()) {
+            Toast.makeText(this, R.string.no_favourites, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val current = channels[index]
+        channels = favourites
+        index = favourites.indexOfFirst { it.key == current.key }.coerceAtLeast(0)
+        showQuickList()
+        findViewById<TextView>(R.id.quick_title).setText(R.string.row_favourites)
+    }
+
+    private fun showRadioPanel(channel: Channel) {
+        radioPanel.visibility = if (channel.radio) View.VISIBLE else View.GONE
+        if (!channel.radio) return
+        findViewById<ImageView>(R.id.radio_logo).loadLogo(channel, 640, 400)
+        findViewById<TextView>(R.id.radio_name).text = channel.name
+        radioSong.text = ""
     }
 
     private fun showQuickList() {

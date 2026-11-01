@@ -15,4 +15,19 @@
     <string name="player_next">Ensuite : %1$s</string>
     <string name="player_position">%1$d / %2$d · %3$s</string>
     <string name="quick_list_hint">OK : regarder · Maintenir OK : favori</string>
+    <string name="row_menu">Menu</string>
+    <string name="row_youtube">Sénégal sur YouTube</string>
+    <string name="menu_guide">Guide des programmes</string>
+    <string name="menu_guide_hint">Grille des chaînes</string>
+    <string name="menu_update">Mise à jour %1$s</string>
+    <string name="menu_update_hint">OK pour installer</string>
+    <string name="update_allow_sources">Autorisez Télé Libre à installer des applications, puis revenez et appuyez à nouveau.</string>
+    <string name="update_failed">La mise à jour n\'a pas pu être installée.</string>
+    <string name="yt_live">🔴 En direct</string>
+    <string name="yt_missing">L\'application YouTube est introuvable.</string>
+    <string name="no_favourites">Pas encore de favoris : maintenez OK sur une chaîne.</string>
+    <string name="guide_title">Guide des programmes · %1$s</string>
+    <string name="guide_hint">OK : regarder · ◀ ▶ : avancer ou reculer d\'une demi-heure</string>
+    <string name="guide_empty">Pas encore de programmes. Le guide se met à jour automatiquement.</string>
+    <string name="home_channel_name">Télé Libre – Favoris</string>
 </resources>

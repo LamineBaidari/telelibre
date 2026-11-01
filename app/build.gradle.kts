@@ -11,8 +11,8 @@ android {
         applicationId = "com.laminebaidari.telelibre"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
     }
 
     // Keystore lives outside the repo; its path and passwords come from ~/.gradle/gradle.properties.
@@ -41,6 +41,9 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    buildFeatures {
+        buildConfig = true
+    }
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
@@ -53,6 +56,7 @@ dependencies {
     implementation("androidx.leanback:leanback:1.0.0")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.work:work-runtime-ktx:2.10.0")
+    implementation("androidx.tvprovider:tvprovider:1.0.0")
     implementation("androidx.media3:media3-exoplayer:1.5.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.5.1")
     implementation("androidx.media3:media3-ui:1.5.1")
@@ -63,4 +67,5 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("net.sf.kxml:kxml2:2.3.0")
+    testImplementation("org.json:json:20240303")
 }

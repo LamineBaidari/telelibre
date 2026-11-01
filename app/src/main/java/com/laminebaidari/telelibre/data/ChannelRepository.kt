@@ -10,22 +10,25 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
-/** Cached channel list, favourites, last channel and channels found dead while playing. */
+/** Cached channel and radio lists, favourites, last channel and channels found dead while playing. */
 class ChannelRepository(context: Context) {
     private val file = AtomicFile(File(context.filesDir, "channels.json"))
+    private val radioFile = AtomicFile(File(context.filesDir, "radio.json"))
     private val prefs = context.getSharedPreferences("telelibre", Context.MODE_PRIVATE)
 
-    private val all = MutableStateFlow(load())
+    private val all = MutableStateFlow(load(file))
+    private val radio = MutableStateFlow(load(radioFile).ifEmpty { RadioRefresher.FALLBACK })
     private val dead = MutableStateFlow(prefs.getStringSet(KEY_DEAD, emptySet())!!.toSet())
 
     private val _visible = MutableStateFlow(computeVisible())
-    /** Channels to show: the cached list minus channels that failed while playing. */
+    /** Channels and radio stations to show, minus those that failed while playing. */
     val channels: StateFlow<List<Channel>> = _visible.asStateFlow()
 
     private val _favourites = MutableStateFlow(prefs.getStringSet(KEY_FAVOURITES, emptySet())!!.toSet())
     val favourites: StateFlow<Set<String>> = _favourites.asStateFlow()
 
     val lastRefresh: Long get() = prefs.getLong(KEY_LAST_REFRESH, 0L)
+    val lastRadioRefresh: Long get() = prefs.getLong(KEY_LAST_RADIO_REFRESH, 0L)
 
     var lastChannelKey: String?
         get() = prefs.getString(KEY_LAST_CHANNEL, null)
@@ -55,16 +58,23 @@ class ChannelRepository(context: Context) {
 
     /** Replaces the cache after a successful refresh; dead marks start over. */
     fun replaceAll(channels: List<Channel>) {
-        save(channels)
+        save(file, channels)
         all.value = channels
         dead.value = emptySet()
         prefs.edit().remove(KEY_DEAD).putLong(KEY_LAST_REFRESH, System.currentTimeMillis()).apply()
         _visible.value = computeVisible()
     }
 
-    private fun computeVisible() = all.value.filter { it.key !in dead.value }
+    fun replaceRadio(stations: List<Channel>) {
+        save(radioFile, stations)
+        radio.value = stations
+        prefs.edit().putLong(KEY_LAST_RADIO_REFRESH, System.currentTimeMillis()).apply()
+        _visible.value = computeVisible()
+    }
 
-    private fun load(): List<Channel> = try {
+    private fun computeVisible() = (all.value + radio.value).filter { it.key !in dead.value }
+
+    private fun load(file: AtomicFile): List<Channel> = try {
         val array = JSONArray(String(file.readFully()))
         List(array.length()) { i ->
             val o = array.getJSONObject(i)
@@ -78,13 +88,14 @@ class ChannelRepository(context: Context) {
                 userAgent = o.optString("ua").ifEmpty { null },
                 referrer = o.optString("ref").ifEmpty { null },
                 notAlways = o.optBoolean("notAlways"),
+                radio = o.optBoolean("radio"),
             )
         }
     } catch (e: Exception) {
         emptyList()
     }
 
-    private fun save(channels: List<Channel>) {
+    private fun save(file: AtomicFile, channels: List<Channel>) {
         val array = JSONArray()
         for (c in channels) {
             array.put(
@@ -92,7 +103,7 @@ class ChannelRepository(context: Context) {
                     .put("key", c.key).put("name", c.name).put("logo", c.logo ?: "")
                     .put("country", c.country ?: "").put("group", c.group).put("url", c.url)
                     .put("ua", c.userAgent ?: "").put("ref", c.referrer ?: "")
-                    .put("notAlways", c.notAlways)
+                    .put("notAlways", c.notAlways).put("radio", c.radio)
             )
         }
         val out = file.startWrite()
@@ -109,6 +120,7 @@ class ChannelRepository(context: Context) {
         private const val KEY_DEAD = "dead"
         private const val KEY_FAVOURITES = "favourites"
         private const val KEY_LAST_REFRESH = "lastRefresh"
+        private const val KEY_LAST_RADIO_REFRESH = "lastRadioRefresh"
         private const val KEY_LAST_CHANNEL = "lastChannel"
     }
 }

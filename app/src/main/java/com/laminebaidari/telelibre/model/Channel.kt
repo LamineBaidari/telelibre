@@ -15,6 +15,8 @@ data class Channel(
     val referrer: String?,
     /** iptv-org marks streams that are not on air all day with "[Not 24/7]". */
     val notAlways: Boolean,
+    /** Audio-only stream (MP3/AAC) instead of an HLS TV channel. */
+    val radio: Boolean = false,
 )
 
 data class Programme(val title: String, val start: Long, val stop: Long)
