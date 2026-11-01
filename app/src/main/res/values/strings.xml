@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Télé Libre</string>
+    <string name="row_favourites">Favoris</string>
+    <string name="status_first_refresh">Recherche des chaînes disponibles…\nCela prend 2 à 3 minutes la première fois.</string>
+    <string name="status_no_channels">Aucune chaîne trouvée. Vérifiez la connexion Internet.</string>
+    <string name="search_hint">Rechercher une chaîne</string>
+    <string name="search_empty">Aucune chaîne ne correspond</string>
+    <string name="fav_added">%1$s ajoutée aux favoris</string>
+    <string name="fav_removed">%1$s retirée des favoris</string>
+    <string name="player_loading">Chargement…</string>
+    <string name="player_retrying">Nouvelle tentative…</string>
+    <string name="player_dead">Chaîne indisponible – chaîne suivante dans 5 s</string>
+    <string name="player_now">En ce moment : %1$s</string>
+    <string name="player_next">Ensuite : %1$s</string>
+    <string name="player_position">%1$d / %2$d · %3$s</string>
+    <string name="quick_list_hint">OK : regarder · Maintenir OK : favori</string>
+</resources>
